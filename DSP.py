@@ -7,6 +7,12 @@ from scipy.io import wavfile
 from python_speech_features import mfcc, logfbank
 import librosa 
 
+def calc_fft(y, rate):
+    n = len(y)
+    freq = np.fft.rfftfreq(n, d=1/rate)
+    Y = abs(np.fft.rfft(y)/n)
+    return (Y, freq)
+
 
 dataset_path = 'wavfiles'
 folder_names = [f for f in os.listdir(dataset_path) if os.path.isdir(os.path.join(dataset_path, f))]
@@ -39,5 +45,26 @@ fig, ax = plt.subplots()
 ax.set_title('Class Disstribution', y=1.08)
 ax.pie(class_dit, labels=class_dit.index, autopct='%1.1f%%', shadow=False, startangle=90)
 ax.axis('equal')
-
 plt.show()
+
+
+data.reset_index(inplace=True)
+
+
+signals = {}
+ftts = {}
+fbanks = {}
+mfccs = {}
+
+for c in classes:
+    file_path = data[data['label'] == c].iloc[0, 0]
+    signal, rate = librosa.load(path='wavfiles/'+file_names, sr=441000)
+
+    signals[c] = signal
+    ftts[c] = calc_fft(signal, rate)
+
+    bank = logfbank(signal[:rate], rate, nfilt=26, nfft=1103)
+    fbanks[c] = bank
+
+    mel = mfcc(signal[:rate], rate, numcep=13, nfilt=26, nfft=1103).T
+    mfccs[c] = mel
