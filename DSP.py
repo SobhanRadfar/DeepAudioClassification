@@ -13,7 +13,17 @@ def calc_fft(y, rate):
     Y = abs(np.fft.rfft(y)/n)
     return (Y, freq)
 
+def envelope(y, rate, thershhold):
+    mask = []
+    y = pd.Series(y).apply(np.abs)
+    y_mean = y.rolling(window=int(rate/10), min_periods=1, center=True).mean()
 
+    for mean in y_mean:
+        if mean > thershhold:
+             mask.append(True)
+        else:
+            mask.append(False)
+    return mask
 dataset_path = 'wavfiles'
 folder_names = [f for f in os.listdir(dataset_path) if os.path.isdir(os.path.join(dataset_path, f))]
 
@@ -58,8 +68,9 @@ mfccs = {}
 
 for c in classes:
     file_path = data[data['label'] == c].iloc[0, 0]
-    signal, rate = librosa.load(path='wavfiles/'+file_names, sr=441000)
-
+    signal, rate = librosa.load(path='wavfiles/' + file_path, sr=441000)
+    mask = envelope(signal, rate, thershhold=0.0005)
+    signal = signal[mask]
     signals[c] = signal
     ftts[c] = calc_fft(signal, rate)
 
@@ -68,3 +79,12 @@ for c in classes:
 
     mel = mfcc(signal[:rate], rate, numcep=13, nfilt=26, nfft=1103).T
     mfccs[c] = mel
+
+
+
+for f in tqdm(data.filename):
+    signal, rate = librosa.load(path='wavfiles/' + f, sr=16000)
+    mask = envelope(signal, rate, thershhold=0.0005)
+    wavfile.write(filename='clean/'+f, rate=rate, data=signal[mask])
+
+    
